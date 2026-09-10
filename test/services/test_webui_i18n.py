@@ -22,6 +22,15 @@ PROVIDER_TIPS_PREFIXES = (
 # 避免把完全相同的品牌名复制十份，也避免长说明后续只更新部分语言。
 ENGLISH_FALLBACK_KEYS = frozenset(
     {
+        "Grok Video",
+        "Grok Video Base URL",
+        "Grok Video API Key",
+        "Grok Video Model",
+        "Grok Video Resolution",
+        "Grok Video Help",
+        "Confirm Grok Video Charge",
+        "Confirm Grok Video Charge Required",
+        "Grok Video Configuration Required",
         "AI Video Quote Required",
         "AI Video Quote Retained For Retry",
         "AI Video Quote Estimate Incomplete",

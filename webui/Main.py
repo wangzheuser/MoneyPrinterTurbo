@@ -46,6 +46,7 @@ from app.models.schema import (
 from app.services import bgm as bgm_service
 from app.services import (
     cache_manager,
+    grok_video,
     llm,
     loomloom,
     material,
@@ -119,6 +120,7 @@ VIDEO_SOURCE_GROUPS = {
         "volcengine_seedance",
         "wavespeed",
         "ofox",
+        "grok_video",
     ),
     "ai_image": ("openai_image",),
     "local": ("local",),
@@ -699,6 +701,7 @@ def _initialize_session_state():
         "wavespeed_confirm_charge": False,
         "volcengine_seedance_confirm_charge": False,
         "ofox_confirm_charge": False,
+        "grok_video_confirm_charge": False,
         "metaso_minimax_confirm_charge": False,
         # AI 视频按素材段计费，默认只生成一段，用户确认效果后再主动增加数量。
         "loomloom_video_scene_count": _saved_ui_number(
@@ -3746,6 +3749,24 @@ def _render_settings_dialog():
                 _set_runtime_config("app", "ofox_provider", selected_ofox_vendor)
 
             with st.container(border=True):
+                st.markdown("**Grok Video**")
+                for field, label, default in (
+                    ("base_url", "Grok Video Base URL", ""),
+                    ("api_key", "Grok Video API Key", ""),
+                    ("model", "Grok Video Model", grok_video.DEFAULT_MODEL_ID),
+                    ("resolution", "Grok Video Resolution", grok_video.DEFAULT_RESOLUTION),
+                ):
+                    config_key = f"grok_video_{field}"
+                    value = st.text_input(
+                        tr(label),
+                        value=str(config.app.get(config_key, default) or ""),
+                        type="password" if field == "api_key" else "default",
+                        key=f"{config_key}_input",
+                    )
+                    _set_runtime_config("app", config_key, value.strip())
+                st.caption(tr("Grok Video Help"))
+
+                st.divider()
                 st.markdown(f"#### {tr('AI Image Generation APIs')}")
                 st.caption(tr("AI Image Generation APIs Help"))
                 st.markdown(f"**{tr('OpenAI Compatible Text-to-Image')}**")
@@ -4924,6 +4945,7 @@ def _render_video_settings(panel, params):
                 "wavespeed": tr("WaveSpeed AI Video"),
                 "volcengine_seedance": tr("Volcano Engine Seedance"),
                 "ofox": tr("OFox AI Video"),
+                "grok_video": tr("Grok Video"),
                 "metaso_minimax": tr("Metaso MiniMax H3"),
                 "loomloom": tr("Shengsuan Cloud AI Video"),
                 "openai_image": tr("OpenAI Compatible Text-to-Image"),
@@ -5206,6 +5228,11 @@ def _render_video_settings(panel, params):
                 _render_seedance_video_settings(params)
             if params.video_source == "ofox":
                 _render_ofox_video_settings(params)
+            if params.video_source == "grok_video":
+                st.caption(tr("Grok Video Help"))
+                st.checkbox(
+                    tr("Confirm Grok Video Charge"), key="grok_video_confirm_charge"
+                )
             if params.video_source == "metaso_minimax":
                 _render_metaso_minimax_video_settings(params)
     return uploaded_files
@@ -7225,6 +7252,7 @@ def _render_generation_controls(
             "wavespeed",
             "volcengine_seedance",
             "ofox",
+            "grok_video",
             "metaso_minimax",
             "loomloom",
             "openai_image",
@@ -7284,6 +7312,16 @@ def _render_generation_controls(
             _remove_active_generation_task(task_id)
             st.error(tr("Confirm Volcano Engine Seedance Charge Required"))
             st.stop()
+
+        if params.video_source == "grok_video":
+            if not grok_video.is_enabled(config.snapshot_config_with_pending(config.app)):
+                _remove_active_generation_task(task_id)
+                st.error(tr("Grok Video Configuration Required"))
+                st.stop()
+            if not st.session_state.get("grok_video_confirm_charge", False):
+                _remove_active_generation_task(task_id)
+                st.error(tr("Confirm Grok Video Charge Required"))
+                st.stop()
 
         if params.video_source == "ofox" and not (
             ofox.is_enabled(config.snapshot_config_with_pending(config.app))

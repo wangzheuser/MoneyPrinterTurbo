@@ -17,6 +17,7 @@ from app.models.schema import VideoConcatMode, VideoParams
 from app.services import bgm as bgm_service
 from app.services import (
     elevenlabs_music,
+    grok_video,
     llm,
     loomloom,
     material,
@@ -751,6 +752,14 @@ def get_video_materials(
                 details=details,
             )
             return None
+        except grok_video.GrokVideoError as exc:
+            _mark_task_failed(
+                task_id,
+                "materials",
+                str(exc),
+                details={"grok_video_task_id": exc.task_id} if exc.task_id else None,
+            )
+            return None
         except ofox.OFoxError as exc:
             # 与方舟同一恢复语义：未确认状态和已生成但下载失败都对应一个可在
             # OFox 控制台恢复的远端任务，统一从异常携带的 task_id 写入失败状态。
@@ -1291,6 +1300,18 @@ def _run_pipeline(
 ):
     logger.info(f"start task: {task_id}, stop_at: {stop_at}")
     sm.state.update_task(task_id, state=const.TASK_STATE_PROCESSING, progress=5)
+
+    if (
+        stop_at in {"materials", "video"}
+        and params.video_source == "grok_video"
+        and not grok_video.is_enabled()
+    ):
+        return _mark_task_failed(
+            task_id,
+            "preflight",
+            "Grok video requires valid grok_video_base_url, grok_video_api_key, "
+            "grok_video_model, grok_video_resolution and grok_video_run_timeout",
+        )
 
     if (
         stop_at in {"materials", "video"}

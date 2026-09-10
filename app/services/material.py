@@ -18,6 +18,7 @@ from PIL import Image, UnidentifiedImageError
 from app.config import config
 from app.models.schema import MaterialInfo, VideoAspect, VideoConcatMode
 from app.services import (
+    grok_video,
     material_cache,
     metaso_minimax,
     ofox,
@@ -1693,6 +1694,15 @@ def download_videos(
     elif material_directory and not os.path.isdir(material_directory):
         material_directory = ""
 
+    if source == "grok_video":
+        return _download_videos_grok_on_demand(
+            task_id=task_id,
+            search_terms=search_terms,
+            video_aspect=video_aspect,
+            audio_duration=audio_duration,
+            max_clip_duration=max_clip_duration,
+            material_directory=material_directory,
+        )
     if source == "wavespeed":
         # AI 生成按条计费，不能沿用库存源"先为全部关键词取回候选、再挑选"
         # 的流程，否则会为用不到的片段付费。生成源改为逐段按需生成，凑够
@@ -2019,6 +2029,57 @@ def _download_videos_seedance_on_demand(
     )
     _persist_material_sources(task_id, material_sources)
     return video_paths
+
+
+def _download_videos_grok_on_demand(
+    *,
+    task_id: str,
+    search_terms: List[str],
+    video_aspect: VideoAspect,
+    audio_duration: float,
+    max_clip_duration: int,
+    material_directory: str,
+) -> List[str]:
+    """串行按需生成，不进入库存搜索缓存，也不改动其他提供商循环。"""
+    try:
+        required = float(audio_duration)
+    except (TypeError, ValueError):
+        raise grok_video.GrokVideoError("Grok video audio duration must be finite") from None
+    if not math.isfinite(required):
+        raise grok_video.GrokVideoError("Grok video audio duration must be finite")
+    if (
+        isinstance(max_clip_duration, bool)
+        or not isinstance(max_clip_duration, int)
+        or max_clip_duration < 1
+    ):
+        raise grok_video.GrokVideoError("Grok video clip duration must be a positive integer")
+    paths, sources = [], []
+    total = 0.0
+    try:
+        for term in search_terms if required > 0 else []:
+            for item in grok_video.generate_videos(term, max_clip_duration, video_aspect):
+                remote_id = item.source_info["asset_id"]
+                saved = grok_video.download_video(remote_id, material_directory)
+                try:
+                    with VideoFileClip(saved) as clip:
+                        actual_duration = float(clip.duration)
+                        width, height = clip.size
+                    if not math.isfinite(actual_duration) or actual_duration <= 0:
+                        raise ValueError("invalid duration")
+                except Exception:
+                    raise grok_video.GrokVideoError(
+                        "Grok video result is not a valid video", remote_id
+                    ) from None
+                item.duration = max(1, int(actual_duration))
+                item.source_info["rendition"] = {"width": width, "height": height}
+                paths.append(saved)
+                sources.append(_material_source_record(item, saved))
+                total += min(actual_duration, max_clip_duration)
+            if total >= required:
+                break
+    finally:
+        _persist_material_sources(task_id, sources)
+    return paths
 
 
 def _download_videos_ofox_on_demand(

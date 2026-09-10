@@ -1,6 +1,15 @@
 {
   "Language": "English",
   "Translation": {
+    "Grok Video": "Grok Video",
+    "Grok Video Base URL": "Grok gateway URL (ending in /v1)",
+    "Grok Video API Key": "Grok gateway API key",
+    "Grok Video Model": "Grok video model",
+    "Grok Video Resolution": "Resolution (480p / 720p / 1080p)",
+    "Grok Video Help": "Generates clips sequentially using your Grok gateway. Each request consumes quota or incurs charges. Requests are capped at 15 seconds; available resolutions depend on your model and account. A failed or unconfirmed task stops further submissions.",
+    "Confirm Grok Video Charge": "I confirm Grok video quota usage or charges",
+    "Confirm Grok Video Charge Required": "Please confirm Grok video quota usage or charges before generating.",
+    "Grok Video Configuration Required": "Configure a Grok gateway URL ending in /v1, API key, model, resolution and a valid timeout in material settings/config.toml.",
     "Kokoro Voices Unavailable": "Could not load Kokoro voices. Your previous selection is retained. Check the connection or enter voices manually.",
     "Login Required": "Login Required",
     "Please login to access settings": "Please login to access settings",

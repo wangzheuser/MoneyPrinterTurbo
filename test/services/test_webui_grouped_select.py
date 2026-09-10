@@ -123,6 +123,7 @@ def test_grouped_video_source_keeps_groups_and_accessible_label_binding():
             "volcengine_seedance",
             "wavespeed",
             "ofox",
+            "grok_video",
             "openai_image",
             "local",
         ]

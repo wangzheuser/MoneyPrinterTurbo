@@ -44,6 +44,7 @@ _CLI_VIDEO_SOURCES = (
     "volcengine_seedance",
     "ofox",
     "metaso_minimax",
+    "grok_video",
     "openai_image",
     "local",
 )
@@ -310,6 +311,11 @@ Batch manifests:
             "confirm that OFox video generation creates paid tasks; required "
             "with --video-source ofox for materials or video output"
         ),
+    )
+    material_group.add_argument(
+        "--confirm-grok-video-charge",
+        action="store_true",
+        help="confirm Grok video quota/charges for materials or video output",
     )
     material_group.add_argument(
         "--confirm-metaso-minimax-charge",
@@ -635,6 +641,16 @@ Batch manifests:
         parser.error(
             "--confirm-metaso-minimax-charge is required with "
             "--video-source metaso_minimax"
+        )
+
+    if (
+        not args.batch_file
+        and args.video_source == "grok_video"
+        and stage_requires_materials
+        and not args.confirm_grok_video_charge
+    ):
+        parser.error(
+            "--confirm-grok-video-charge is required with --video-source grok_video"
         )
 
     if args.bgm_file:
@@ -1014,6 +1030,7 @@ def _validate_batch_task_params(
     seedance_charge_confirmed: bool,
     ofox_charge_confirmed: bool,
     metaso_minimax_charge_confirmed: bool,
+    grok_video_charge_confirmed: bool = False,
 ) -> None:
     if not params.video_subject.strip() and not params.video_script.strip():
         raise ValueError("one of video_subject or video_script is required")
@@ -1067,6 +1084,15 @@ def _validate_batch_task_params(
     ):
         raise ValueError(
             "--confirm-metaso-minimax-charge is required for Metaso MiniMax H3"
+        )
+
+    if (
+        params.video_source == "grok_video"
+        and stop_at in {"materials", "video"}
+        and not grok_video_charge_confirmed
+    ):
+        raise ValueError(
+            "--confirm-grok-video-charge is required for Grok video generation"
         )
 
     if stop_at == "subtitle" and not params.subtitle_enabled:
@@ -1169,6 +1195,7 @@ def _build_batch_tasks(args: argparse.Namespace) -> list[VideoParams]:
                 ),
                 seedance_charge_confirmed=args.confirm_seedance_charge,
                 ofox_charge_confirmed=args.confirm_ofox_charge,
+                grok_video_charge_confirmed=args.confirm_grok_video_charge,
                 metaso_minimax_charge_confirmed=(
                     args.confirm_metaso_minimax_charge
                 ),
