@@ -3754,7 +3754,6 @@ def _render_settings_dialog():
                     ("base_url", "Grok Video Base URL", ""),
                     ("api_key", "Grok Video API Key", ""),
                     ("model", "Grok Video Model", grok_video.DEFAULT_MODEL_ID),
-                    ("resolution", "Grok Video Resolution", grok_video.DEFAULT_RESOLUTION),
                 ):
                     config_key = f"grok_video_{field}"
                     value = st.text_input(
@@ -3764,6 +3763,19 @@ def _render_settings_dialog():
                         key=f"{config_key}_input",
                     )
                     _set_runtime_config("app", config_key, value.strip())
+                resolution_options = ["480p", "720p", "1080p"]
+                configured_resolution = str(
+                    config.app.get("grok_video_resolution", grok_video.DEFAULT_RESOLUTION) or ""
+                ).strip()
+                if configured_resolution not in resolution_options:
+                    configured_resolution = grok_video.DEFAULT_RESOLUTION
+                selected_resolution = st.selectbox(
+                    tr("Grok Video Resolution"),
+                    options=resolution_options,
+                    index=resolution_options.index(configured_resolution),
+                    key="grok_video_resolution_select",
+                )
+                _set_runtime_config("app", "grok_video_resolution", selected_resolution)
                 st.caption(tr("Grok Video Help"))
 
                 st.divider()

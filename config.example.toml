@@ -84,7 +84,7 @@ video_source = "pexels"
 grok_video_base_url = ""
 grok_video_api_key = ""
 grok_video_model = "grok-imagine-video"
-grok_video_resolution = "720p"
+grok_video_resolution = "480p"
 grok_video_run_timeout = 1800
 
 # API key lists support key rotation. Use straight ASCII double quotes and

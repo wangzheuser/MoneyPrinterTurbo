@@ -1,0 +1,39 @@
+# 本机部署：两个服务使用同一个本地构建镜像，代码随镜像发布。
+# Compose 会自动将本文件与 docker-compose.yml 合并。
+name: moneyprinterturbo-local
+
+x-local-build: &local-build
+  context: .
+  dockerfile: Dockerfile
+  args:
+    PYTHON_BASE_IMAGE: python:3.11-slim-bookworm
+    DOCKER_BUILD_MIRROR: default
+    PIP_USE_OFFICIAL: "1"
+    HTTP_PROXY: http://host.docker.internal:7890
+    HTTPS_PROXY: http://host.docker.internal:7890
+    NO_PROXY: localhost,127.0.0.1,host.docker.internal,webui,api
+
+x-local-environment: &local-environment
+  HTTP_PROXY: http://host.docker.internal:7890
+  HTTPS_PROXY: http://host.docker.internal:7890
+  NO_PROXY: localhost,127.0.0.1,host.docker.internal,webui,api
+
+services:
+  webui:
+    image: moneyprinterturbo-local:latest
+    pull_policy: never
+    build: *local-build
+    environment: *local-environment
+    volumes: !override
+      - ./config.toml:/MoneyPrinterTurbo/config.toml
+      - ./storage:/MoneyPrinterTurbo/storage
+  api:
+    image: moneyprinterturbo-local:latest
+    pull_policy: never
+    build: *local-build
+    environment: *local-environment
+    ports: !override
+      - "127.0.0.1:18080:8080"
+    volumes: !override
+      - ./config.toml:/MoneyPrinterTurbo/config.toml
+      - ./storage:/MoneyPrinterTurbo/storage

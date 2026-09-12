@@ -1,5 +1,6 @@
 # Use an official Python runtime as a parent image
-FROM python:3.11-slim-bullseye
+ARG PYTHON_BASE_IMAGE=python:3.11-slim-bullseye
+FROM ${PYTHON_BASE_IMAGE}
 
 # Set the working directory in the container
 WORKDIR /MoneyPrinterTurbo
@@ -20,11 +21,14 @@ ARG PIP_USE_OFFICIAL=0
 # 和“三次重试”拆成边界清晰的 shell 函数，并用函数返回值决定是否继续。
 # 所有软件源统一使用 HTTPS，避免部分网络环境直接拦截明文 HTTP 请求。
 RUN set -u; \
+    . /etc/os-release; \
     write_debian_sources() { \
         main_url="$1"; \
         security_url="$2"; \
-        printf 'deb %s bullseye main\ndeb %s bullseye-updates main\ndeb %s bullseye-security main\n' \
-            "$main_url" "$main_url" "$security_url" > /etc/apt/sources.list; \
+        printf 'deb %s %s main\ndeb %s %s-updates main\ndeb %s %s-security main\n' \
+            "$main_url" "$VERSION_CODENAME" "$main_url" "$VERSION_CODENAME" \
+            "$security_url" "$VERSION_CODENAME" > /etc/apt/sources.list; \
+        rm -f /etc/apt/sources.list.d/debian.sources; \
         rm -rf /var/lib/apt/lists/*; \
     }; \
     install_system_dependencies() { \

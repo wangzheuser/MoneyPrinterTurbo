@@ -19,7 +19,7 @@ from app.models.schema import MaterialInfo, VideoAspect
 from app.utils import utils
 
 DEFAULT_MODEL_ID = "grok-imagine-video"
-DEFAULT_RESOLUTION = "720p"
+DEFAULT_RESOLUTION = "480p"
 POLL_INTERVAL = 5
 MAX_POLL_FAILURES = 5
 RETRYABLE_STATUSES = {429, 500, 502, 503, 504}
